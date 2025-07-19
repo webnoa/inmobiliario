@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+langchain
+langchain-community
+langgraph
+openai
+langchain-openai>=0.0.1
+tiktoken
+redis
+psycopg2-binary
+python-dotenv
+faiss-cpu
+
