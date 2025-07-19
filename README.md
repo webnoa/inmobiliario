@@ -8,6 +8,7 @@ Sistema modular de agentes IA diseñado para asistir en operaciones inmobiliaria
 - **Redis** para persistencia de conversaciones
 - **OpenAI (gpt-4o-mini)** como modelo principal
 - Desplegable en Docker + VPS (Contabo)
+- Whatsapp + Chatwoot
 
 ---
 
