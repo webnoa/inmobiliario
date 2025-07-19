@@ -1,66 +1,111 @@
-# 🏡 Agente Inmobiliario Autónomo
 
-Este proyecto implementa un agente de IA modular para consultas inmobiliarias (búsqueda, comparación y agenda de visitas), utilizando **LangGraph**, **LangChain**, **PostgreSQL**, **Redis** y **FastAPI**.
+# Real Estate Agent (LangGraph + LangChain)
 
----
-
-## ⚙️ Tecnologías
-
-- [LangGraph](https://langchain-ai.github.io/langgraph/)
-- [LangChain](https://www.langchain.com/)
-- [FastAPI](https://fastapi.tiangolo.com/)
-- [PostgreSQL](https://www.postgresql.org/)
-- [Redis](https://redis.io/)
-- [Docker Compose](https://docs.docker.com/compose/)
+Sistema modular de agentes IA diseñado para asistir en operaciones inmobiliarias, basado en:
+- **LangChain** y **LangGraph**
+- **FastAPI** para exponer endpoints
+- **PostgreSQL** para almacenamiento de propiedades
+- **Redis** para persistencia de conversaciones
+- **OpenAI (gpt-4o-mini)** como modelo principal
+- Desplegable en Docker + VPS (Contabo)
 
 ---
 
-## 🧠 Capacidades del agente
+## 📁 Estructura del proyecto
 
-- Clasificación semántica de intención (buscar, comparar, agendar, otro)
-- Persistencia del historial por usuario (Redis)
-- Consulta y carga de propiedades (PostgreSQL)
-- Nodo de agente ReAct para consultas generales
-- Registro y validación de visitas simuladas
-- Registro de historial detallado: pregunta, intención, respuesta, timestamp
+```
+real_estate_agent_project/
+├── api/
+│   └── main.py
+├── graph/
+│   ├── property_graph.py
+│   └── nodes/
+│       ├── classifier.py
+│       ├── search.py
+│       ├── compare.py
+│       ├── agendar.py
+│       └── react_agent.py
+├── scripts/
+│   └── load_data.py
+├── tools/
+│   ├── db.py
+│   ├── redis.py
+│   ├── intent_embeddings.py
+│   ├── react_tools.py
+│   └── __init__.py
+├── data/
+│   └── properties.csv
+├── .env.example
+├── .gitignore
+├── requirements.txt
+└── README.md
+```
 
 ---
 
-## 🚀 Estructura del proyecto
+## 🚀 Endpoints disponibles (FastAPI)
 
- │    agents/property_agent.py                                                                       │
- │    api/main.py                                                                                    │
- │    config.py                                                                                      │
- │    docker/Dockerfile                                                                              │
- │    docker/docker-compose.yml                                                                      │
- │    graph/nodes/agenda.py                                                                          │
- │    graph/nodes/agendar.py                                                                         │
- │    graph/nodes/classifier.py                                                                      │
- │    graph/nodes/compare.py                                                                         │
- │    graph/nodes/final.py                                                                           │
- │    graph/nodes/historial.py                                                                       │
- │    graph/nodes/react_agent.py                                                                     │
- │    graph/nodes/search.py                                                                          │
- │    graph/property_graph.py                                                                        │
- │    requirements.txt                                                                               │
- │    .env                                                                               │
- │    scripts/load_data.py                                                                           │
- │    tools/db.py                                                                                    │
- │    tools/intent_embeddings.py                                                                     │
- │    tools/property_search.py                                                                       │
- │    tools/react_tools.py                                                                           │
- │    tools/redis.py
+- `GET /consulta_graph?q=...&usuario=...` → Ejecuta el flujo LangGraph
+- `GET /historial?usuario=...` → Devuelve el historial guardado en Redis
 
-# Resumen del Proyecto
+---
 
-## Estado actual
-- Clasificador con embeddings y fallback a LLM
-- Historial en Redis por usuario
-- Nodo de agenda con validación
-- Ramas: buscar, comparar, agendar, otro (ReAct)
+## 🧠 Flujo LangGraph
 
-## Próximos pasos
-- Sesiones
-- Interfaz Web y WhatsApp
-- Base de propiedades más robusta
-- Testing y monitoreo
+El grafo define un flujo de decisión por intención:
+
+```python
+StateGraph(GraphState)
+ → clasificar_intencion
+     ├── buscar → buscar_propiedades
+     ├── comparar → comparar_propiedades
+     ├── agendar → agendar_visita
+     └── otro → react_agent
+```
+
+---
+
+## 🔐 Variables de entorno (.env)
+
+Ejemplo (`.env.example`):
+
+```env
+OPENAI_API_KEY=sk-xxx
+POSTGRES_HOST=postgres
+POSTGRES_PORT=5432
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=password
+POSTGRES_DB=properties
+REDIS_HOST=redis
+REDIS_PORT=6379
+```
+
+---
+
+## ⚙️ Setup (Modo Docker)
+
+1. Copiar `.env.example` → `.env`
+2. Levantar servicios:
+```bash
+docker compose up --build
+```
+3. Cargar propiedades:
+```bash
+docker compose exec api bash
+python scripts/load_data.py
+```
+
+---
+
+## 🔍 Clasificador con semántica
+
+- Usa keywords, LLM (gpt-4o-mini), y embeddings + FAISS para mayor precisión.
+- Historial guardado con pregunta, intención, respuesta y timestamp por usuario.
+
+---
+
+## 📌 Próximos pasos
+
+- Mejora del agente `agendar_visita` (validación + agenda persistente)
+- Continuación de sesiones y recuperación de contexto
+- Conexión con canal WhatsApp o interfaz web
