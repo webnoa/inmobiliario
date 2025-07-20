@@ -54,3 +54,19 @@ def load_properties_from_csv(csv_path):
     conn.commit()
     cur.close()
     conn.close()
+
+# Dummy para evitar crash - buscar por texto
+def buscar_propiedades(texto_busqueda: str):
+    return [
+        {"id": 1, "tipo": "Casa", "ambientes": 3, "ubicacion": "San Miguel", "precio": 75000},
+        {"id": 2, "tipo": "Departamento", "ambientes": 2, "ubicacion": "Yerba Buena", "precio": 58000},
+    ]
+
+# Dummy para evitar crash - buscar por IDs
+def obtener_propiedades_por_ids(ids):
+    dummy = [
+        {"id": 1, "tipo": "Casa", "ambientes": 3, "ubicacion": "San Miguel", "precio": 75000},
+        {"id": 2, "tipo": "Departamento", "ambientes": 2, "ubicacion": "Yerba Buena", "precio": 58000},
+        {"id": 3, "tipo": "Casa", "ambientes": 4, "ubicacion": "Tafí Viejo", "precio": 95000},
+    ]
+    return [p for p in dummy if p["id"] in ids]

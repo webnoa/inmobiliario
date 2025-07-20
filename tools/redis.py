@@ -26,3 +26,21 @@ def recuperar_historial(usuario: str, filtro_intencion: str = None):
         if not filtro_intencion or entrada["intencion"] == filtro_intencion:
             historial.append(entrada)
     return historial
+
+def guardar_valor(clave: str, valor: dict):
+    r = get_redis_connection()
+    r.set(clave, json.dumps(valor))
+
+def recuperar_valor(clave: str):
+    r = get_redis_connection()
+    valor = r.get(clave)
+    return json.loads(valor) if valor else None
+
+def guardar_contexto(usuario: str, campo: str, valor: dict):
+    r = get_redis_connection()
+    r.set(f"contexto:{usuario}:{campo}", json.dumps(valor))
+
+def recuperar_contexto(usuario: str, campo: str):
+    r = get_redis_connection()
+    v = r.get(f"contexto:{usuario}:{campo}")
+    return json.loads(v) if v else None

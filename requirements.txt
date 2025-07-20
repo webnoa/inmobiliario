@@ -10,4 +10,5 @@ redis
 psycopg2-binary
 python-dotenv
 faiss-cpu
-
+pytest
+dateparser>=1.1.8

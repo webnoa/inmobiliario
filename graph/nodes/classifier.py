@@ -1,6 +1,6 @@
 from typing import TypedDict
 from langchain.chat_models import ChatOpenAI
-from tools.redis import guardar_en_historial
+from tools.redis import guardar_en_historial, guardar_contexto
 from datetime import datetime
 from tools.intent_embeddings import clasificar_por_semantica
 
@@ -34,5 +34,5 @@ def clasificar_intencion(state: GraphState) -> GraphState:
         "respuesta": "",
     }
     guardar_en_historial(usuario, pregunta, intencion, "")
-
+    guardar_contexto(usuario, "ultima_intencion", {"intencion": intencion})
     return {**state, "intencion": intencion}
