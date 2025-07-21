@@ -34,16 +34,27 @@ Use code with caution.
 Markdown
 .
 ├── api/ # Endpoints de FastAPI (main.py)
+
 ├── data/ # Archivos de datos (properties.csv)
+
 ├── docker/ # Archivos de Docker (Dockerfile, docker-compose.yml)
+
 ├── graph/
+
 │ ├── nodes/ # Lógica de cada nodo del grafo (buscar, comparar, etc.)
+
 │ └── property_graph.py # Construcción del grafo con LangGraph
+
 ├── scripts/ # Scripts de utilidad (ej: seed_db.py para poblar la DB)
+
 ├── tools/ # Herramientas y utilidades (conexión a DB, Redis, herramientas ReAct)
+
 ├── app_gradio.py # Script de la interfaz de usuario Gradio
+
 ├── config.py # Configuración centralizada
+
 ├── requirements.txt # Dependencias de Python para la API
+
 └── README.md # Este archivo
 
 Generated code
