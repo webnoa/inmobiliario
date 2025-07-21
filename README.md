@@ -93,21 +93,22 @@ Use code with caution.
 Bash
 Este script creará la tabla properties (si no existe) y la llenará con los datos.
 
-#5. ¡Chatea con el Agente!
+5. ¡Chatea con el Agente!
 Una vez que todos los servicios estén en funcionamiento y la base de datos esté poblada, abre tu navegador web y ve a:
 http://localhost:7860
 Deberías ver la interfaz de Gradio lista para que empieces a conversar con tu agente inmobiliario.
 Ejemplos de Conversación
 Búsqueda: busco casa en yerba buena
-#Comparación: compara las propiedades 1 y 2
-#Agendamiento (multi-turno):
+Comparación: compara las propiedades 1 y 2
+Agendamiento (multi-turno):
 quiero agendar una visita para la id 5
 mañana a las 4 de la tarde
 Conversación general: ¿cuál es la capital de Francia?
-#🔮 Próximos Pasos
+
+🔮 Próximos Pasos
 Consulta el archivo PROXIMOS_PASOS.md para ver la hoja de ruta detallada con las futuras mejoras planificadas, incluyendo:
 Limpieza de contexto post-agendamiento.
 Saludos personalizados.
 Gestión de "Favoritos".
-#Integración con RAG para responder preguntas sobre documentos.
-Desarrollado por [Tu Nombre/Tu Equipo]
+Integración con RAG para responder preguntas sobre documentos.
+
