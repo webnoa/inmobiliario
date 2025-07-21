@@ -6,11 +6,11 @@ load_dotenv()
 
 # Configuración para PostgreSQL
 POSTGRES = {
-    "host": os.getenv("POSTGRES_HOST"),
-    "port": os.getenv("POSTGRES_PORT"),
-    "user": os.getenv("POSTGRES_USER"),
-    "password": os.getenv("POSTGRES_PASSWORD"),
-    "db": os.getenv("POSTGRES_DB"),
+    "host": os.getenv("POSTGRES_HOST", "localhost"),
+    "port": int(os.getenv("POSTGRES_PORT", 5432)),
+    "user": os.getenv("POSTGRES_USER", "admin"),
+    "password": os.getenv("POSTGRES_PASSWORD", "admin"),
+    "db": os.getenv("POSTGRES_DB", "real_estate")
 }
 
 # Configuración para Redis

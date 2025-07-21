@@ -1,3 +1,5 @@
+# Ruta: /REAL_ESTATE_AGENT/docker/docker-compose.yml
+
 services:
   api:
     build:
@@ -10,6 +12,8 @@ services:
     depends_on:
       - postgres
       - redis
+    networks:
+      - real-estate-network
 
   postgres:
     image: postgres:15
@@ -21,11 +25,34 @@ services:
       - pgdata:/var/lib/postgresql/data
     ports:
       - "5432:5432"
+    networks:
+      - real-estate-network
 
   redis:
     image: redis:7
     ports:
       - "6379:6379"
+    networks:
+      - real-estate-network
+
+  gradio:
+    build:
+      # Contexto es la carpeta raíz del proyecto para que pueda encontrar app_gradio.py
+      context: ..
+      # La ruta al Dockerfile es relativa al contexto.
+      dockerfile: docker/Dockerfile.gradio
+    ports:
+      - "7860:7860"
+    depends_on:
+      - api
+    environment:
+      - API_HOST=http://api:8000
+    networks:
+      - real-estate-network
 
 volumes:
   pgdata:
+
+networks:
+  real-estate-network:
+    driver: bridge

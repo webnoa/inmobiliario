@@ -1,53 +1,42 @@
+# Ruta: /REAL_ESTATE_AGENT/graph/nodes/agendar.py
 
-from typing import TypedDict
-import re
-from datetime import datetime
-from tools.redis import recuperar_contexto, guardar_contexto
+from typing import Dict, Any
 
-class GraphState(TypedDict, total=False):
-    pregunta: str
-    intencion: str
-    respuesta: str
-    usuario: str
+def agendar_visita_node(state: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Intenta agendar una visita. Si faltan datos, pide la información
+    necesaria de forma conversacional.
+    """
+    print("---📅 NODO: AGENDAR VISITA (v2)---")
+    datos_visita = state.get("datos_visita", {})
 
-def agendar_visita_node(state: GraphState) -> GraphState:
-    usuario = state.get("usuario", "anonimo")
-    pregunta = state.get("pregunta", "").lower()
+    propiedad_id = datos_visita.get("id_propiedad")
+    fecha = datos_visita.get("fecha")
+    hora = datos_visita.get("hora")
 
-    # 1) Intentar usar datos previamente extraídos
-    ctx = recuperar_contexto(usuario, "datos_visita") or {}
+    # --- LÓGICA CONVERSACIONAL ---
+    if not propiedad_id or not fecha or not hora:
+        partes_faltantes = []
+        if not propiedad_id:
+            partes_faltantes.append("el ID de la propiedad")
+        if not fecha:
+            partes_faltantes.append("el día")
+        if not hora:
+            partes_faltantes.append("la hora")
+        
+        respuesta_texto = f"¡Casi lo tenemos! Para agendar, solo me falta que me digas {', '.join(partes_faltantes)}."
+        return {"respuesta": respuesta_texto}
 
-    fecha = ctx.get("fecha")
-    hora = ctx.get("hora")
-    prop = ctx.get("propiedad_id")
+    # Si tenemos todos los datos, confirmamos
+    respuesta_texto = (
+        f"¡Perfecto! He agendado tu visita.\n\n"
+        f"✅ **Propiedad ID**: {propiedad_id}\n"
+        f"🗓️ **Fecha**: {fecha}\n"
+        f"⏰ **Hora**: {hora}\n\n"
+        f"Un asesor se pondrá en contacto contigo para confirmar. ¡Gracias!"
+    )
 
-    # 2) Fallback: regex rápida si no vino del extractor (por compatibilidad)
-    if not fecha and "hoy" in pregunta:
-        fecha = datetime.now().strftime("%Y-%m-%d")
-    elif not fecha and "mañana" in pregunta:
-        fecha = (datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-                 + timedelta(days=1)).strftime("%Y-%m-%d")
-
-    if not hora:
-        m_h = re.search(r"(\d{1,2})(?:[:h](\d{2}))?", pregunta)
-        if m_h:
-            h = int(m_h.group(1))
-            m = int(m_h.group(2) or 0)
-            hora = f"{h:02d}:{m:02d}"
-
-    if not prop:
-        m_p = re.search(r"(casa|propiedad|departamento)\s*(\d+)", pregunta)
-        if m_p:
-            prop = int(m_p.group(2))
-
-    if not (fecha and hora and prop):
-        return {**state, "respuesta": "❌ Necesito fecha, hora e ID de propiedad para agendar."}
-
-    # persistimos confirmación
-    guardar_contexto(usuario, "datos_visita_confirmada", {
-        "fecha": fecha, "hora": hora, "propiedad_id": prop
-    })
-
-    mensaje = f"✅ Visita agendada para la propiedad {prop} el {fecha} a las {hora}."
-    print(f"📅 Agendando visita ({usuario}): {mensaje}")
-    return {**state, "respuesta": mensaje}
+    return {
+        "datos_visita_confirmada": datos_visita,
+        "respuesta": respuesta_texto
+    }

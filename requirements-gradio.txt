@@ -1,0 +1,3 @@
+# Ruta: /REAL_ESTATE_AGENT/requirements-gradio.txt
+gradio
+requests

@@ -12,3 +12,4 @@ python-dotenv
 faiss-cpu
 pytest
 dateparser>=1.1.8
+langchainhub
