@@ -1,67 +1,89 @@
-from typing import Optional, Any, Dict, List
+# Ruta: /REAL_ESTATE_AGENT/tools/react_tools.py
+
+from langchain.agents import tool, create_react_agent, AgentExecutor
 from langchain_community.chat_models import ChatOpenAI
-from langchain.agents import AgentExecutor, create_react_agent
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.tools import tool
-from tools.redis import recuperar_contexto, recuperar_historial
 from langchain import hub
+from typing import Dict, Any
 
+# Importamos las funciones de Redis y DB para que las herramientas puedan usarlas
+from .redis import guardar_contexto, recuperar_contexto, recuperar_historial
+from .db import obtener_propiedades_por_ids
 
-# -------------------- TOOLS --------------------
+# --- Definición de Herramientas para el Agente ReAct ---
 
 @tool
-def saludar(nombre: str) -> str:
-    """Saluda al usuario por su nombre."""
-    return f"Hola {nombre}, ¿en qué puedo ayudarte hoy?"
+def saludar(usuario: str) -> str:
+    """Saluda al usuario, intentando usar su nombre si está guardado en el contexto."""
+    nombre_guardado = recuperar_contexto(usuario, "nombre_usuario")
+    if nombre_guardado:
+        return f"¡Hola, {nombre_guardado}! Qué bueno verte de nuevo. ¿En qué te puedo ayudar hoy?"
+    return "¡Hola! Soy tu asistente inmobiliario. ¿En qué puedo ayudarte?"
+
+@tool
+def recordar_nombre_usuario(nombre: str, usuario: str) -> str:
+    """Guarda el nombre del usuario para futuras interacciones."""
+    guardar_contexto(usuario, "nombre_usuario", nombre)
+    return f"¡Mucho gusto, {nombre}! He guardado tu nombre. ¿En qué puedo ayudarte?"
 
 @tool
 def buscar_ultima_busqueda(usuario: str) -> str:
-    """Devuelve un listado corto de la última búsqueda de propiedades del usuario (si existe)."""
-    props = recuperar_contexto(usuario, "propiedades_encontradas") or []
-    if not props:
-        return "No tengo propiedades recientes para este usuario."
-    lineas = []
-    for p in props[:5]:
-        titulo = p.get("title") or p.get("titulo") or f"Propiedad {p.get('id','?')}"
-        ubic = p.get("ubicacion") or p.get("location") or "Ubicación?"
-        precio = p.get("precio") or p.get("price") or "?"
-        lineas.append(f"{titulo} - {ubic} - USD {precio}")
-    return "\n".join(lineas)
+    """Busca y resume la última búsqueda de propiedades realizada por un usuario."""
+    ultima_busqueda = recuperar_contexto(usuario, "ultima_busqueda")
+    if ultima_busqueda and isinstance(ultima_busqueda, dict):
+        texto_busqueda = ultima_busqueda.get("texto", "una búsqueda anterior")
+        return f"Tu última búsqueda fue sobre: '{texto_busqueda}'. ¿Quieres continuar con eso?"
+    return "No tengo registrada una búsqueda reciente para ti. ¿Qué te gustaría buscar?"
+
+# --- NUEVA HERRAMIENTA ---
+@tool
+def obtener_detalles_propiedad(id_propiedad: int) -> str:
+    """
+    Busca y devuelve los detalles completos de una única propiedad usando su ID.
+    Es útil si el usuario pregunta 'muéstrame la propiedad 6' o 'dame detalles del ID 3'.
+    """
+    try:
+        propiedades = obtener_propiedades_por_ids([id_propiedad])
+        if not propiedades:
+            return f"No encontré ninguna propiedad con el ID {id_propiedad} en la base de datos."
+        
+        prop = propiedades[0]
+        detalles = (
+            f"¡Claro! Aquí tienes los detalles de la Propiedad ID {prop.get('id')}:\n"
+            f"- Título: {prop.get('title', 'N/A')}\n"
+            f"- Tipo: {prop.get('type', 'N/A').capitalize()}\n"
+            f"- Ubicación: {prop.get('location', 'N/A')}\n"
+            f"- Precio: ${prop.get('price', 0):,}\n"
+            f"- Ambientes: {prop.get('rooms', 'N/A')}\n"
+            f"- Superficie: {prop.get('area_m2', 'N/A')} m²"
+        )
+        return detalles
+    except Exception as e:
+        print(f"🚨 Error en la herramienta obtener_detalles_propiedad: {e}")
+        return "Tuve un problema al buscar los detalles de esa propiedad en la base de datos."
 
 @tool
-def resumen_historial(usuario: str, n: int = 3) -> str:
-    """Devuelve las últimas N interacciones del historial del usuario."""
-    hist = recuperar_historial(usuario)
-    if not hist:
-        return "Sin historial."
-    sel = hist[:n]
-    return "\n".join(
-        f"[{h['timestamp']}] {h['pregunta']} → {h['intencion']}" for h in sel
-    )
+def respuesta_por_defecto(pregunta_original: str) -> str:
+    """Úsalo como último recurso cuando ninguna otra herramienta sea apropiada."""
+    return "Lo siento, no estoy seguro de cómo ayudarte con eso. Soy un asistente inmobiliario. Puedo buscar, comparar o agendar visitas a propiedades. ¿Cómo te gustaría proceder?"
 
-TOOLS = [saludar, buscar_ultima_busqueda, resumen_historial]
+# --- Lista de Herramientas y Prompt ---
 
-# Este prompt ya contiene las variables requeridas '{tools}' y '{tool_names}'.
+TOOLS = [
+    saludar,
+    recordar_nombre_usuario,
+    buscar_ultima_busqueda,
+    obtener_detalles_propiedad, # <-- Herramienta nueva y potente
+    respuesta_por_defecto,
+]
+
 PROMPT = hub.pull("hwchase17/react")
 
-# --- Función para crear el Agente ---
-def crear_agente_react():
-    """
-    Crea y devuelve un agente ReAct con las herramientas y el prompt configurados.
-    """
-    # ... (tu código para definir las herramientas 'TOOLS' debería estar aquí) ...
-    # ... (tu código para definir el 'llm' debería estar aquí) ...
-    llm = ChatOpenAI(model="gpt-4o", temperature=0) # Asumo que esto ya lo tienes
-
-    # El resto de la función no necesita cambios, ya que ahora el PROMPT es correcto.
+# --- Fábrica del Agente ---
+def crear_agente_react() -> AgentExecutor:
+    llm = ChatOpenAI(model="gpt-4o", temperature=0, streaming=True)
     agent = create_react_agent(llm=llm, tools=TOOLS, prompt=PROMPT)
-    
     agent_executor = AgentExecutor(
-        agent=agent,
-        tools=TOOLS,
-        verbose=True,
-        # Esto es importante para que no se quede en un bucle infinito
-        max_iterations=5, 
-        handle_parsing_errors=True # Maneja errores si el LLM responde mal
+        agent=agent, tools=TOOLS, verbose=True,
+        max_iterations=5, handle_parsing_errors=True
     )
     return agent_executor

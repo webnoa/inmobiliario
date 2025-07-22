@@ -13,3 +13,5 @@ faiss-cpu
 pytest
 dateparser>=1.1.8
 langchainhub
+numpy
+scipy

@@ -7,26 +7,31 @@ from tools.redis import guardar_contexto, recuperar_contexto
 
 def extraer_datos_agenda_node(state: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Extrae ID, fecha y hora. Acumula la información a través de múltiples turnos
-    usando Redis como memoria a corto plazo.
+    Extrae ID, fecha y hora. Limpia el texto antes de pasarlo a dateparser
+    para evitar confusiones y acumula la información a través de turnos.
     """
-    print("---🧩 NODO: EXTRAER DATOS DE AGENDA (v2)---")
+    print("---🧩 NODO: EXTRAER DATOS DE AGENDA (v3 - Robusto)---")
     texto = state.get("pregunta", "").lower()
     usuario = state.get("usuario")
 
-    # --- 1. RECUPERAR EL CONTEXTO EXISTENTE ---
-    # Traemos lo que ya sabíamos de la visita desde Redis.
+    # 1. Recuperar el contexto existente de Redis
     datos_previos = recuperar_contexto(usuario, "datos_visita") or {}
-    print(f"Contexto previo recuperado de Redis: {datos_previos}")
+    print(f"Contexto previo recuperado: {datos_previos}")
 
-    # --- 2. EXTRAER NUEVA INFORMACIÓN DE LA PREGUNTA ACTUAL ---
-    # Extraer ID
+    # 2. Extraer ID de Propiedad
     id_match = re.search(r'(?:id|propiedad|casa|depto|el)\s*#?(\d+)', texto)
     id_nuevo = int(id_match.group(1)) if id_match else None
-    
-    # Extraer Fecha y Hora
+
+    # --- CAMBIO CLAVE: Limpiar el texto para dateparser ---
+    texto_para_fecha = texto
+    if id_match:
+        # Si encontramos un ID, lo quitamos del texto para no confundir a dateparser
+        texto_para_fecha = texto.replace(id_match.group(0), "")
+        print(f"Texto limpiado para dateparser: '{texto_para_fecha}'")
+
+    # 3. Extraer Fecha y Hora del texto (limpio o completo)
     fecha_detectada = dateparser.parse(
-        texto, 
+        texto_para_fecha, 
         languages=['es'],
         settings={'PREFER_DATES_FROM': 'future', 'RETURN_AS_TIMEZONE_AWARE': False}
     )
@@ -40,9 +45,7 @@ def extraer_datos_agenda_node(state: Dict[str, Any]) -> Dict[str, Any]:
     
     print(f"Información nueva extraída: ID={id_nuevo}, Fecha={fecha_nueva}, Hora={hora_nueva}")
 
-    # --- 3. FUSIONAR LO VIEJO CON LO NUEVO ---
-    # Creamos el estado final para la visita, dando prioridad a la información
-    # recién extraída en este turno.
+    # 4. Fusionar lo viejo con lo nuevo
     datos_fusionados = {
         "id_propiedad": id_nuevo or datos_previos.get("id_propiedad"),
         "fecha": fecha_nueva or datos_previos.get("fecha"),
@@ -50,9 +53,6 @@ def extraer_datos_agenda_node(state: Dict[str, Any]) -> Dict[str, Any]:
     }
     print(f"Datos fusionados para la visita: {datos_fusionados}")
 
-    # --- 4. GUARDAR Y PASAR EL ESTADO FUSIONADO ---
-    # Guardamos el estado completo y actualizado en Redis para el próximo turno.
+    # 5. Guardar y pasar el estado fusionado
     guardar_contexto(usuario, "datos_visita", datos_fusionados)
-
-    # Pasamos el estado completo al siguiente nodo en el grafo.
     return {"datos_visita": datos_fusionados}

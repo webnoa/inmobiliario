@@ -5,73 +5,72 @@ import requests
 import uuid
 import os
 
-# Lee la URL del backend desde una variable de entorno
+# --- Configuración ---
 API_HOST = os.getenv("API_HOST", "http://api:8000")
 API_URL = f"{API_HOST}/consulta_graph"
 
-def chatbot_response(message: str, history: list) -> str:
+# --- Lógica de Comunicación con la API ---
+def chatbot_response(message: str, session_id: str) -> str:
     """
     Envía el mensaje del usuario al backend de FastAPI y devuelve la respuesta.
-    'history' ahora contiene el ID de sesión que inyectaremos.
     """
-    # Extraemos el ID de sesión del estado del historial
-    session_id = history[0] if history and isinstance(history[0], str) else str(uuid.uuid4())
-
     if not message or not message.strip():
         return "Por favor, escribe una pregunta."
 
-    params = {
-        "q": message,
-        "usuario": session_id
-    }
+    params = {"q": message, "usuario": session_id}
 
     try:
-        response = requests.get(API_URL, params=params, timeout=20)
+        response = requests.get(API_URL, params=params, timeout=30) # Aumentamos el timeout
         response.raise_for_status()
         data = response.json()
-        return data.get("respuesta_final", "Error: No se recibió una respuesta válida.")
-    except requests.exceptions.HTTPError as e:
-        return f"Error en API: {e.response.status_code} - {e.response.text}"
+        return data.get("respuesta_final", "Error: No se recibió una respuesta válida del servidor.")
     except requests.exceptions.RequestException as e:
-        return f"Error de conexión con el backend en '{API_URL}'. Error: {e}"
-
-# --- Construcción de la Interfaz con Gradio (MODIFICADA) ---
+        return f"Error de conexión con el backend en '{API_URL}'. El servidor podría estar ocupado. Error: {e}"
 
 # --- Construcción de la Interfaz con Gradio ---
 with gr.Blocks(theme=gr.themes.Soft(), title="Agente Inmobiliario") as demo:
-    # ... (la definición de session_id, Markdown, chatbot, msg, clear no cambia) ...
+    # Estado para mantener un ID de sesión único por usuario
     session_id = gr.State(value=str(uuid.uuid4()))
+    
     gr.Markdown("# 🤖 Chat con el Agente Inmobiliario")
+
+    # Chatbot configurado para el formato 'messages'
     chatbot = gr.Chatbot(
         label="Chat",
         height=600,
-        # type="messages" # <-- Eliminamos temporalmente para simplificar
+        bubble_full_width=False,
+        type="messages" # <-- Formato correcto activado
     )
+
+    # Textbox para la entrada del usuario
     msg = gr.Textbox(
-        placeholder="Busca pisos en Barcelona con 3 habitaciones...",
+        placeholder="Busca una casa en Yerba Buena...",
         label="Escribe tu consulta y presiona Enter"
     )
+
+    # Botón para limpiar la conversación
     clear = gr.ClearButton([msg, chatbot], value="Limpiar Chat")
 
- # --- FUNCIÓN 'respond' CORREGIDA ---
+    # --- FUNCIÓN 'respond' QUE MANEJA EL FORMATO 'messages' ---
     def respond(message, chat_history, session_id_state):
         """
-        Toma el mensaje del usuario y el historial, obtiene la respuesta del bot
-        y actualiza el historial en el formato correcto para Gradio.
+        Toma el mensaje del usuario, obtiene la respuesta del bot y actualiza
+        el historial en el formato de diccionarios que Gradio espera.
         """
-        # Llama a la función que se comunica con la API
-        bot_message = chatbot_response(message, [session_id_state])
+        # 1. Añade el mensaje del usuario al historial en el formato correcto
+        chat_history.append({"role": "user", "content": message})
         
-        # Añade el nuevo par de mensajes (usuario, bot) al historial
-        chat_history.append((message, bot_message))
+        # 2. Obtiene la respuesta del bot llamando a la API
+        bot_message_content = chatbot_response(message, session_id_state)
         
-        # Devuelve una cadena vacía para limpiar el textbox y el historial actualizado
+        # 3. Añade la respuesta del bot al historial en el formato correcto
+        chat_history.append({"role": "assistant", "content": bot_message_content})
+        
+        # 4. Devuelve una cadena vacía para limpiar el textbox y el historial actualizado
         return "", chat_history
 
-
-    # Conecta el envío del mensaje del textbox a la función 'respond'
+    # Conecta el evento 'submit' del textbox a la función 'respond'
     msg.submit(respond, [msg, chatbot, session_id], [msg, chatbot])
-
 
 if __name__ == "__main__":
     print(f"Iniciando la interfaz de Gradio...")
