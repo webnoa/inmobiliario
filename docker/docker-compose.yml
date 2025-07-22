@@ -1,6 +1,7 @@
 # Ruta: /REAL_ESTATE_AGENT/docker/docker-compose.yml
 
 services:
+  # --- Servicio del Backend (FastAPI) ---
   api:
     build:
       context: ..
@@ -9,14 +10,31 @@ services:
       - "8000:8000"
     volumes:
       - ../:/app
+    environment:
+      # Variables de entorno para la conexión a la base de datos
+      - POSTGRES_HOST=postgres
+      - POSTGRES_DB=real_estate
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=admin
+      - POSTGRES_PORT=5432
+      # Variables de entorno para Qdrant (para el futuro)
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+      # Variables para desactivar LangSmith
+      - LANGCHAIN_TRACING_V2=false
+      - LANGCHAIN_API_KEY=""
     depends_on:
       - postgres
       - redis
+      - qdrant # La API ahora depende de que Qdrant esté listo
     networks:
       - real-estate-network
 
+  # --- Servicio de la Base de Datos Relacional ---
   postgres:
     image: postgres:15
+    container_name: postgres_db
+    restart: unless-stopped
     environment:
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: admin
@@ -28,19 +46,23 @@ services:
     networks:
       - real-estate-network
 
+  # --- Servicio de Memoria en Caché ---
   redis:
     image: redis:7
+    container_name: redis_cache
+    restart: unless-stopped
     ports:
       - "6379:6379"
     networks:
       - real-estate-network
 
+  # --- Servicio de la Interfaz de Usuario ---
   gradio:
     build:
-      # Contexto es la carpeta raíz del proyecto para que pueda encontrar app_gradio.py
       context: ..
-      # La ruta al Dockerfile es relativa al contexto.
       dockerfile: docker/Dockerfile.gradio
+    container_name: gradio_ui
+    restart: unless-stopped
     ports:
       - "7860:7860"
     depends_on:
@@ -50,9 +72,25 @@ services:
     networks:
       - real-estate-network
 
+  # --- NUEVO SERVICIO: Base de Datos Vectorial ---
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: qdrant_db
+    restart: unless-stopped
+    ports:
+      - "6333:6333" # Puerto gRPC
+      - "6334:6334" # Puerto REST
+    volumes:
+      - qdrant_data:/qdrant/storage
+    networks:
+      - real-estate-network
+
+# --- Definición de Volúmenes Persistentes ---
 volumes:
   pgdata:
+  qdrant_data: # <-- Volumen para Qdrant añadido
 
+# --- Definición de la Red de la Aplicación ---
 networks:
   real-estate-network:
     driver: bridge

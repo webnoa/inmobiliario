@@ -15,3 +15,9 @@ dateparser>=1.1.8
 langchainhub
 numpy
 scipy
+# Dependencias para RAG con Qdrant
+qdrant-client
+langchain-qdrant
+unstructured
+pdf2image
+pytesseract
