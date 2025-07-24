@@ -1,0 +1,25 @@
+// Ruta: /.devcontainer/devcontainer.json
+{
+	"name": "Real Estate Agent (Dev Container)",
+
+	// Le decimos a Dev Containers que use nuestro docker-compose existente.
+	"dockerComposeFile": [
+		"../docker/docker-compose.yml"
+	],
+
+	// Especificamos a cuál de los servicios del compose nos queremos conectar.
+	"service": "api",
+
+	// La carpeta que se abrirá por defecto al conectar.
+	"workspaceFolder": "/app",
+
+	// Configuraciones específicas de VS Code para este entorno.
+	"customizations": {
+		"vscode": {
+			// Extensiones que quieres que se instalen automáticamente dentro del contenedor.
+			"extensions": [
+				"ms-python.python"
+			]
+		}
+	}
+}

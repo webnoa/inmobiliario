@@ -28,7 +28,7 @@ def clasificar_intencion_node(state: Dict[str, Any]) -> Dict[str, Any]:
         intencion = "favorito"
         print("✔ Detectado por keyword de MÁXIMA prioridad → favorito")
 
-    elif any(p in pregunta for p in ["comparar", "compara", "diferencias", "vs"]):
+    elif any(p in pregunta for p in ["comparar", "compara", "diferencias", "vs", "comparala", "compáralas"]):
         intencion = "comparar"
         print("✔ Detectado por keyword de alta prioridad → comparar")
 

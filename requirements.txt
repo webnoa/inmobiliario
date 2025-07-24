@@ -21,3 +21,5 @@ langchain-qdrant
 unstructured
 pdf2image
 pytesseract
+# Para visualización del grafo
+pygraphviz

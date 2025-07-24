@@ -48,27 +48,33 @@ def build_graph():
     # Definir el punto de entrada
     workflow.set_entry_point("clasificar_intencion")
 
-    # --- CAMBIO CLAVE: Modificar la ruta de la intención 'otro' ---
-    # Ahora, si la intención es 'otro', el flujo va DIRECTAMENTE al agente ReAct,
-    # evitando la contaminación del nodo 'preprocesar_contexto'.
+    # --- LÓGICA DE ENRUTAMIENTO PRINCIPAL ---
+    # Las intenciones que pueden tener preguntas de seguimiento ambiguas (como 'comparar'
+    # o 'agendar') se envían primero al preprocesador de contexto.
     workflow.add_conditional_edges(
         "clasificar_intencion",
         lambda state: state.get("intencion"),
         {
             "favorito": "gestionar_favoritos",
             "buscar": "buscar_propiedades",
-            "comparar": "comparar_propiedades",
-            "agendar": "extraer_datos_agenda",
-            "otro": "react_agent", # <-- RUTA CORREGIDA
+            # --- RUTAS MODIFICADAS para usar el contexto ---
+            "comparar": "preprocesar_contexto",
+            "agendar": "preprocesar_contexto",
+            # --- Ruta sin cambios ---
+            "otro": "react_agent",
         },
     )
 
-    # --- RUTAS FIJAS Y CONDICIONALES (SIN CAMBIOS, PERO REVISADAS) ---
-    
-    # El nodo de preprocesamiento de contexto sigue existiendo, pero ahora está "huérfano".
-    # Podríamos conectarlo a otros flujos si fuera necesario en el futuro.
-    # Por ejemplo, si quisiéramos que 'comparar' use contexto:
-    # workflow.add_edge("preprocesar_contexto_para_comparar", "comparar_propiedades")
+    # --- NUEVA LÓGICA DE ENRUTAMIENTO DESPUÉS DEL PREPROCESADOR ---
+    # Después de que el contexto ha sido (potencialmente) añadido,
+    # enrutamos a la acción final basándonos en la misma intención original.
+    workflow.add_conditional_edges(
+        "preprocesar_contexto",
+        lambda state: state.get("intencion"),
+        {
+            "comparar": "comparar_propiedades",
+            "agendar": "extraer_datos_agenda",
+        })
     
     workflow.add_edge("extraer_datos_agenda", "agendar_visita")
 

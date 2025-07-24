@@ -59,7 +59,12 @@ def preprocesar_contexto_node(state: GraphState) -> Dict[str, Any]:
             texto_contexto = ultima_pregunta_contexto
         
         if texto_contexto and texto_contexto != pregunta:
-            nueva_pregunta = f"{texto_contexto} y {pregunta}"
+            # --- MEJORA: Combinación más inteligente para evitar "y y" ---
+            conector = " "
+            # Si la pregunta ambigua no empieza con una conjunción o pronombre, añadimos "y"
+            if not pregunta.strip().lower().startswith(("y ", "o ", "cuál", "cual", "dame", "contame")):
+                conector = " y "
+            nueva_pregunta = f"{texto_contexto}{conector}{pregunta}"
             print(f"↩️ Sustituyendo por contexto. Nueva pregunta: '{nueva_pregunta}'")
             return {"pregunta": nueva_pregunta}
 
